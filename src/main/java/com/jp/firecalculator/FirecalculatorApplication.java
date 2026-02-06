@@ -191,7 +191,8 @@ public class FirecalculatorApplication {
 		return inflationAdjustedBalance*luxury.rate;
 	}
 
-	public static double fv(double rate, int nper, double pmt, double pv, boolean type) {
+	
+    public static double fv(double rate, int nper, double pmt, double pv, boolean type) {
     MathContext mc = new MathContext(15, RoundingMode.HALF_UP);
 
     BigDecimal bdRate = new BigDecimal(rate, mc);
@@ -215,7 +216,8 @@ public class FirecalculatorApplication {
                 .subtract(bdPmt.multiply(factor, mc), mc)
                 .round(mc);
 
-        return result.setScale(2, RoundingMode.HALF_UP).doubleValue();
+        // RETURN WITHOUT ROUNDING
+        return result.doubleValue();
     }
 }
 
@@ -246,32 +248,31 @@ public class FirecalculatorApplication {
         if (year == 32) {
             part1 = fv(expectedReturn, 1, 0, valueAtRetirement, true);
             part2 = fv(expectedReturn / 12.0, 12, -moneyWithdrawl, 0, true);
+
+            double result = part1 + part2;
+                return result;
         } else {
             part1 = fv(expectedReturn, 1, 0, -previousPortfolio, true);
             part2 = fv(expectedReturn / 12.0, 12, -moneyWithdrawl, 0, true);
-        }
 
-        return Math.abs(part1 + part2);
+            double result = part1 + part2;
+                return result;
+        }
 
     } catch (Exception e) {
         return 0;
     }
 }
-
-
         public static double moneyWithdrawl(double inflationAdjustedExpense){
             return inflationAdjustedExpense/12;
         }
-
-
-
-
 
 	public static void main(String[] args) {
 		SpringApplication.run(FirecalculatorApplication.class, args);
 
 		FirecalculatorApplication app=new FirecalculatorApplication();
 		app.expectedReturn = app.getExpectedReturn();
+        System.out.println("EXPECTED RETURN IS::"+app.expectedReturn);
 
 
 
@@ -327,13 +328,6 @@ System.out.printf(
             profit = closingBalance - cumulative;
             double inflationAdjusted=inflationAdjustedBalance(app.monthlyExpenses,app.year,loopAge,app.retirementAge,previousInflationAdjustedBalance,app.inflation);
             fireamount=fireAmountTarget(inflationAdjusted);
-            
-        
-            
-
-       
-            
-
       
  System.out.printf(
         "%-5d | %-5d | %-10d | %-12d | %-13d | %-13d | %-12d | %-17d | %-18d | %-6s | %-8s | %-15s | %-14s | %-14s%n",
