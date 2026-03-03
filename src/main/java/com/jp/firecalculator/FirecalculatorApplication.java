@@ -20,10 +20,9 @@ public class FirecalculatorApplication {
     int currentAge = 29;
 
     // Age variable used in loops / calculations (starts at 26 here, but updated
-    // later)
     int age = 26;
 
-    // Age at which the user plans to retire
+    // Age at which the user plans to retirement
     int retirementAge = 60;
 
     // Initial lump sum investment amount at the start of calculation
@@ -83,10 +82,13 @@ public class FirecalculatorApplication {
         // Low risk: 25% equity, 60% debt, 15% money market
         riskAllocations.put("low", new Allocation(0.25, 0.60, 0.15));
 
+      //  riskAllocations.put("lower", new Allocation(0.25, 0.60, 0.15));
+      //  riskAllocations.put("VAS Debt", new Allocation(0.25, 0.60, 0.15));
+
         // Lifestyle options affecting FIRE multiplier
-        lifeStyle.put("luxury", new LifeStyle(37.5)); // FIRE target = 37.5x annual expenses
-        lifeStyle.put("comfortable", new LifeStyle(25)); // FIRE target = 25x annual expenses
-        lifeStyle.put("modest", new LifeStyle(18.5)); // FIRE target = 18.5x annual expenses
+        lifeStyle.put("luxury", new LifeStyle("Luxury", 37.5)); // FIRE target = 37.5x annual expenses
+        lifeStyle.put("comfortable", new LifeStyle("Comfortable", 25)); // FIRE target = 25x annual expenses
+        lifeStyle.put("modest", new LifeStyle("Modest", 18.5)); // FIRE target = 18.5x annual expenses
     }
 
     // ================= HELPER METHODS TO FETCH ALLOCATION & LIFESTYLE
@@ -120,16 +122,16 @@ public class FirecalculatorApplication {
     public static LifeStyle getLifeStyle(String style) {
         return lifeStyle.getOrDefault(
                 style.trim().toLowerCase(),
-                new LifeStyle(0) // Default if invalid style
+                new LifeStyle("", 0) // Default if invalid style
         );
     }
 
     // Fetching a high-risk portfolio allocation
-    Allocation high = getAllocation("high");
+    Allocation high = getAllocation("low");
     // high.equity = 0.8, high.debt = 0.2, high.moneymarktet = 0.0
 
     // Fetching FIRE multiplier for luxury lifestyle
-    static LifeStyle luxury = getLifeStyle("Luxury");
+    static LifeStyle luxury = getLifeStyle("modest");
     // luxury.rate = 37.5 (used to calculate FIRE target)
 
     /**
@@ -148,7 +150,7 @@ public class FirecalculatorApplication {
 
         double equityComponent = high.equity * equityReturn;
         double debtComponent = high.debt * debtReturn;
-        double moneyMarketComponent = high.moneymarktet * moneyMarketReturn;
+        double moneyMarketComponent = high.moneyMarket * moneyMarketReturn;
         return equityComponent + debtComponent + moneyMarketComponent;
     }
 
@@ -507,7 +509,7 @@ public class FirecalculatorApplication {
             if (redAge == retirementAge + 1) {
 
                 // Grow retirement corpus for 1 year
-                part1 = fv(expectedReturn, 1, 0, valueAtRetirement, true);
+                part1 = fv(expectedReturn, 1, 0, -valueAtRetirement, true);
 
             } else {
 
@@ -515,8 +517,9 @@ public class FirecalculatorApplication {
                 part1 = fv(expectedReturn, 1, 0, -previousPortfolio, true);
             }
 
-            // Monthly withdrawals reduce portfolio
-            part2 = fv(expectedReturn / 12.0, 12, -moneyWithdrawl, 0, true);
+            // Monthly withdrawals reduce portfolio (passing as positive subtracts from
+            // balance)
+            part2 = fv(expectedReturn / 12.0, 12, moneyWithdrawl, 0, true);
 
             return part1 + part2;
 
@@ -559,27 +562,18 @@ public class FirecalculatorApplication {
         double profit = 0; // Profit at retirement
         double fireamount = 0; // FIRE target amount
 
-        // aLoop through each year from current age to retirement age
-        // Header row
+        // Calculations Table Header
         System.out.println(
-                "---------------------------------------------------------------------------------------------------------------------------------------------------------------"
-                        + "--------------------------------------------------------------------------------------");
-
-        // First heading row (main sections)
-        System.out.printf(
-                "%-109s | %-65s%n",
-                String.format("%55s", "Calculations"),
-                String.format("%33s", "Redemption Calculations"));
-
-        // Separator line under main headings
+                "-----------------------------------------------------------------------------------------------------------------------------");
+        System.out.printf("%65s%n", "CALCULATIONS");
         System.out.println(
-                "---------------------------------------------------------------------------------------------------------------------------------------------------------------"
-                        + "--------------------------------------------------------------------------------------");
+                "-----------------------------------------------------------------------------------------------------------------------------");
         System.out.printf(
-                "%-5s | %-5s | %-10s | %-12s | %-13s | %-13s | %-12s | %-17s | %-18s | %-6s | %-8s | %-15s | %-14s | %-14s%n",
+                "%-5s | %-5s | %-10s | %-12s | %-13s | %-13s | %-12s | %-17s | %-18s%n",
                 "Age", "Year", "Monthly", "Annual", "Cumulative", "Portfolio", "Profit",
-                "Infl.Adj.Balance", "Fire Amount", "Age", "Year", "Infl.Adj.Exp",
-                "MoneyWdraw", "RedPortfolio");
+                "Infl.Adj.Balance", "Fire Amount");
+        System.out.println(
+                "-----------------------------------------------------------------------------------------------------------------------------");
         for (int loopAge = app.currentAge; loopAge < app.retirementAge; loopAge++) {
             // Update age and year for current iteration
             app.age = loopAge + 1;
@@ -606,7 +600,7 @@ public class FirecalculatorApplication {
             fireamount = fireAmountTarget(inflationAdjusted);
 
             System.out.printf(
-                    "%-5d | %-5d | %-10d | %-12d | %-13d | %-13d | %-12d | %-17d | %-18d | %-6s | %-8s | %-15s | %-14s | %-14s%n",
+                    "%-5d | %-5d | %-10d | %-12d | %-13d | %-13d | %-12d | %-17d | %-18d%n",
                     app.age,
                     app.year,
                     Math.round(currentMonthly),
@@ -615,9 +609,7 @@ public class FirecalculatorApplication {
                     Math.round(closingBalance),
                     Math.round(profit),
                     Math.round(inflationAdjusted),
-                    Math.round(fireamount),
-                    "", "", "", "", "" // redemption columns blank
-            );
+                    Math.round(fireamount));
 
             // Update previous values for next iteration
             previousCumulative = cumulative;
@@ -632,6 +624,17 @@ public class FirecalculatorApplication {
 
         app.redAge = app.retirementAge; // Start redemption from retirement age
         app.redempYear = app.retirementAge + 1 - app.currentAge; // Calculate retirement year number
+
+        System.out.println(
+                "\n----------------------------------------------------------------------------------");
+        System.out.printf("%50s%n", "REDEMPTION CALCULATIONS");
+        System.out.println("----------------------------------------------------------------------------------");
+        System.out.printf(
+                "%-5s | %-5s | %-15s | %-14s | %-14s%n",
+                "Age", "Year", "Infl.Adj.Exp", "MonthlyWithdraw", "RedemptionPortfolio");
+        System.out.println("----------------------------------------------------------------------------------");
+
+        int yearsAfterRetirement = 0; // Counter for positive portfolio years
 
         for (int loopAge = app.redAge; loopAge < app.lifeExpectancy; loopAge++) {
 
@@ -662,9 +665,14 @@ public class FirecalculatorApplication {
                     moneyWithdrawl,
                     previousRedemptionPortfolio);
 
+            // Increment counter if portfolio is positive
+            if (portfolio > 0) {
+                yearsAfterRetirement++;
+            }
+
             // Print redemption year data
             System.out.printf(
-                    "%-6d | %-8d | %-18.0f | %-15s | %-14.0f%n",
+                    "%-5d | %-5d | %-15.0f | %-14s | %-14.0f%n",
                     app.redAge,
                     app.redempYear,
                     inflationAdjustedExpense,
@@ -684,6 +692,38 @@ public class FirecalculatorApplication {
         System.out.printf("%-30s : PKR %,d%n", "Value at Retirement", Math.round(previousClosingBalance));
         System.out.printf("%-30s : PKR %,d%n", "FIRE Amount at Retirement", Math.round(fireamount));
         System.out.printf("%-30s : %d%%%n", "Achieved Target", Math.round((previousClosingBalance / fireamount) * 100));
+        System.out.println("================================================================================");
+        System.out.println("Your Savings will Last for " + yearsAfterRetirement + " years After retirement");
+        System.out.println("Based your Retirement plan and life style goals we suggest that you invest in");
+
+        // Risk Suggestion Logic
+        String lifestyleChoice = luxury.name; // Automatically uses the name from luxury config
+        int yearsToRetirement = app.retirementAge - app.currentAge;
+        String suggestedRisk = "";
+
+        if (yearsToRetirement <= 10) {
+            if (lifestyleChoice.equalsIgnoreCase("Luxury")) {
+                suggestedRisk = "Medium Risk";
+            } else {
+                suggestedRisk = "Low Risk";
+            }
+        } else if (yearsToRetirement <= 20) {
+            if (lifestyleChoice.equalsIgnoreCase("Luxury")) {
+                suggestedRisk = "High Risk";
+            } else {
+                suggestedRisk = "Medium Risk";
+            }
+        } else { // > 20 years
+            if (lifestyleChoice.equalsIgnoreCase("Modest")) {
+                suggestedRisk = "Medium Risk";
+            } else {
+                suggestedRisk = "High Risk";
+            }
+        }
+
+        System.out.println(suggestedRisk + " Funds");
+
+        System.out.println("To reach your FIRE Amount you need to save "  + app.monthly + " Monthly" );
 
         System.out.println("================================================================================");
 
